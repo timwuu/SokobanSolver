@@ -36,10 +36,14 @@ class STATE:
                 continue
 
             j=j+1
-        
-        print( player)
-        print( wall)
-        print( box)
+
+        self.set_wall( wall)
+        self.set_box( box)
+        self.set_player( player)
+
+        print( self._player)
+        print( self._wall)
+        print( self._box)
 
     def set_goal( self, lst):
         self._goal = np.array( lst, dtype='b')
@@ -60,9 +64,29 @@ class STATE:
         m.update( self._box.tobytes())  
         return m.hexdigest()
     
+def CountSteps( map, state):
 
+    print( state.get_hexdigest())
+
+    map2 = map.copy()
+
+    for val in state._box:
+        map2[val[0]][val[1]]= -2
+
+    map2[state._player[0]][state._player[1]] = -3
+
+    print( map2)
+
+    pass
 
 def Solve( state, goal):
+
+    map = np.zeros((8,8),dtype='b')
+
+    for val in state._wall:
+        map[val[0]][val[1]]= -1
+
+    CountSteps( map, state)
 
     pass 
 
@@ -75,19 +99,6 @@ goal = [[3,3],[3,4],[3,5],[4,4],[4,5]]
 s.setup( mapstr)
 
 Solve( s, goal)
-
-m = hashlib.sha256()
-
-lst = [[0,1],[2,3]]
-
-map = np.array( lst, dtype='b')
-
-m.update( map.tobytes())
-
-print( m.hexdigest())
-
-print( map[0][1])
-
 
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
