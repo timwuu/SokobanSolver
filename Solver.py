@@ -245,10 +245,18 @@ def Solve( state, goal):
     for val in state._wall:
         map[val[0]][val[1]]= -1
 
-    Solve2( map, state, goal, 0, 0)
+    trace = []
+    log = []
+
+    if( not Solve2( map, state, goal, 0, 0, trace, log)):
+        print( "Cannot Solve!")
 
 
-def Solve2( map, state, goal, depth, total_steps):
+def Solve2( map, state, goal, depth, total_steps, trace, log):
+
+    if( total_steps>20 or depth> 5):
+        #print( "total_steps:", total_steps, " depth:", depth)
+        return False
 
     # map2 : WALLS plus STEP COUNT
     map2 = map.copy()
@@ -257,10 +265,6 @@ def Solve2( map, state, goal, depth, total_steps):
     CountSteps( map2, state)
 
     #print( map2)
-
-    if( depth> 2):
-        #exit()
-        return
 
     #Remove illegible moves for the BOX
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
@@ -275,6 +279,8 @@ def Solve2( map, state, goal, depth, total_steps):
     for i in range(0, depth+1):
         str_space += "   "
 
+    str_space += " Move Box: {:d} Steps: {:d} Dir: {}"
+
     #Try each possible move
     for mov in moves:
         steps = mov[2]
@@ -285,7 +291,11 @@ def Solve2( map, state, goal, depth, total_steps):
 
         #print( new_state.get_hexdigest())
 
-        print( str_space, "Move Box:", box_no, "Steps:", steps, "Dir:", mov_dir)
+        str_log = str_space.format( box_no, steps, mov_dir)
+
+        #print( str_log)
+
+        log.append( str_log)
 
         new_state.moveBox( box_no, mov_dir)
 
@@ -294,23 +304,33 @@ def Solve2( map, state, goal, depth, total_steps):
             print( "Reach Goals!")
             print( "Depth:", depth+1)
             print( "Total Steps:", total_steps+steps+1)
-            exit()
-            return
-            #continue    #Find next alternative solution
+            for trc_log in log:
+                print( trc_log)
+            return True
 
         #check if new_state is duplicate
+        
+        key = new_state.get_hexdigest()
+
+        if( key in trace):
+            #print( "duplicate state!")
+            log.pop()
+            continue
+
+        trace.append( key)
 
         #print( new_state.get_hexdigest())
 
-
-
         #start a new node for search
-        Solve2( map, new_state, goal, depth+1, total_steps+steps+1)
-
+        if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log)):
+            return True
+            #continue    #Find next alternative solution
+        else:
+            log.pop()
+            trace.remove( key)
         continue
 
-
-    pass 
+    return False
 
 s = STATE()
 
@@ -318,11 +338,13 @@ mapstr = "#---WWWW-"+"#WWWW PW-"+"#W   B W-"+"#W B   WW"+"#WWB B  W"+"#-W  B  W"
 
 goal = [[3,3],[3,4],[3,5],[4,4],[4,5]]
 
-goal = [[3,4],[3,2],[4,2],[4,4],[5,4]]  # one step
+#goal = [[3,4],[3,2],[4,2],[4,4],[5,4]]  # one step
 
-goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
+#goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 
-goal = [[3,5],[3,2],[4,2],[4,4],[5,4]]  # two steps
+#goal = [[3,5],[3,2],[4,2],[4,4],[5,4]]  # two steps
+
+goal = [[3,5],[3,2],[4,2],[4,4],[5,3]]  # two steps
 
 s.setup( mapstr)
 
