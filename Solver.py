@@ -41,9 +41,9 @@ class STATE:
         self.set_box( box)
         self.set_player( player)
 
-        print( self._player)
-        print( self._wall)
-        print( self._box)
+        #print( self._player)
+        #print( self._wall)
+        #print( self._box)
 
     def set_goal( self, lst):
         self._goal = np.array( lst, dtype='b')
@@ -64,9 +64,99 @@ class STATE:
         m.update( self._box.tobytes())  
         return m.hexdigest()
     
+""" def CountSteps2( map, state):
+
+    i=1
+
+    lst =  np.array( [state._player])
+
+    print(lst)
+
+    while( np.any(lst)):
+
+        next_lst = np.array([], dtype='b')
+
+        next_lst = np.append(next_lst,[3,4], axis=0)
+
+        print("step:", i)
+
+        for elem in lst:
+
+            print("elem:", elem)
+
+            x = elem[0]
+            y = elem[1]
+
+            if( map[x-1][y]==0):    #LEFT
+                map[x-1][y] = i
+                next_lst = np.append(next_lst, [x-1,y])
+            if( map[x+1][y]==0):    #RIGHT
+                map[x+1][y] = i
+                next_lst = np.append(next_lst, [x+1,y])
+            if( map[x][y-1]==0):    #UP
+                map[x][y-1] = i
+                next_lst = np.append(next_lst, [x,y-1])
+            if( map[x][y+1]==0):    #DOWN
+                map[x][y+1] = i
+                next_lst = np.append(next_lst, [x,y+1])
+
+        lst = next_lst
+
+        print( lst)
+
+        i=i+1
+
+        pass
+
+    print( map)
+
+    pass """
+
+def CountSteps2( map, state):
+
+    i=1
+
+    lst =  [[state._player[0],state._player[1]]]
+
+    while( len(lst) ):
+
+        next_lst = []
+
+        #print("step:", i)
+
+        for elem in lst:
+
+            #print("elem:", elem)
+
+            x = elem[0]
+            y = elem[1]
+
+            if( map[x-1][y]==0):    #LEFT
+                map[x-1][y] = i
+                next_lst.append([x-1,y])
+            if( map[x+1][y]==0):    #RIGHT
+                map[x+1][y] = i
+                next_lst.append([x+1,y])
+            if( map[x][y-1]==0):    #UP
+                map[x][y-1] = i
+                next_lst.append([x,y-1])
+            if( map[x][y+1]==0):    #DOWN
+                map[x][y+1] = i
+                next_lst.append([x,y+1])
+
+        lst = next_lst
+
+        #print( lst)
+
+        i=i+1
+
+        pass
+
+    pass
+
 def CountSteps( map, state):
 
-    print( state.get_hexdigest())
+    #print( state.get_hexdigest())
 
     map2 = map.copy()
 
@@ -74,6 +164,9 @@ def CountSteps( map, state):
         map2[val[0]][val[1]]= -2
 
     map2[state._player[0]][state._player[1]] = -3
+
+    print( map2)
+    CountSteps2( map2, state)
 
     print( map2)
 
