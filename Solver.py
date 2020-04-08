@@ -1,11 +1,20 @@
 import numpy as np
 import hashlib
 import copy
+import datetime
 
 # Notation: [ROW][COL]
 # Note: Add Forbidden Cells to improve the efficiency
+#       Check duplicate state in the search tree, ?keep DEPTH info
 
+MAX_STEPS = 28  
+MAX_DEPTH = 6
+MAP_ROW = 8
+MAP_COL = 8
 FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
+
+g_para_duplicate_state_count = 0
+g_para_duplicate_state_count2 = 0
 
 def isNotForbidden( pos):
     return ( pos not in FORBIDDEN )
@@ -90,55 +99,6 @@ class STATE:
 
         return True
 
-
-""" def CountSteps2( map, state):
-
-    i=1
-
-    lst =  np.array( [state._player])
-
-    print(lst)
-
-    while( np.any(lst)):
-
-        next_lst = np.array([], dtype='b')
-
-        next_lst = np.append(next_lst,[3,4], axis=0)
-
-        print("step:", i)
-
-        for elem in lst:
-
-            print("elem:", elem)
-
-            x = elem[0]
-            y = elem[1]
-
-            if( map[x-1][y]==0):    #LEFT
-                map[x-1][y] = i
-                next_lst = np.append(next_lst, [x-1,y])
-            if( map[x+1][y]==0):    #RIGHT
-                map[x+1][y] = i
-                next_lst = np.append(next_lst, [x+1,y])
-            if( map[x][y-1]==0):    #UP
-                map[x][y-1] = i
-                next_lst = np.append(next_lst, [x,y-1])
-            if( map[x][y+1]==0):    #DOWN
-                map[x][y+1] = i
-                next_lst = np.append(next_lst, [x,y+1])
-
-        lst = next_lst
-
-        print( lst)
-
-        i=i+1
-
-        pass
-
-    print( map)
-
-    pass """
-
 def CountSteps2( map, state):
 
     i=1
@@ -180,8 +140,8 @@ def CountSteps2( map, state):
         pass
 
     #set map[i][j]==0 to -9
-    for i in range(0,8):
-        for j in range(0,8):
+    for i in range(0,MAP_ROW):
+        for j in range(0,MAP_COL):
             if( map[i][j]==0):
                 map[i][j]= -9
 
@@ -254,12 +214,12 @@ def SetEligibleMoves( map, state, moves):
 def Solve( state, goal):
 
     # map : WALLS ONLY
-    map = np.zeros((8,8),dtype='b')
+    map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
 
     for val in state._wall:
         map[val[0]][val[1]]= -1
 
-    trace = []
+    trace = {}
     log = []
 
     if( not Solve2( map, state, goal, 0, 0, trace, log)):
@@ -268,7 +228,7 @@ def Solve( state, goal):
 
 def Solve2( map, state, goal, depth, total_steps, trace, log):
 
-    if( total_steps>28 or depth> 6):
+    if( total_steps> MAX_STEPS or depth> MAX_DEPTH):
         #print( "total_steps:", total_steps, " depth:", depth)
         return False
 
@@ -322,10 +282,17 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
 
         if( key in trace):
             #print( "duplicate state!")
-            continue
+            global g_para_duplicate_state_count
+            global g_para_duplicate_state_count2
+
+            g_para_duplicate_state_count += 1
+
+            if( trace[key] < depth+1):
+                g_para_duplicate_state_count2 += 1
+                continue
 
         log.append( str_log)
-        trace.append( key)
+        trace[key] = depth+1
 
         #print( new_state.get_hexdigest())
 
@@ -333,11 +300,10 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
         if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log)):
             return True
             #log.pop()
-            #trace.remove( key)
             #continue    #Find next alternative solution
         else:
             log.pop()
-            trace.remove( key)
+            #trace.pop(key)
         continue
 
     return False
@@ -364,13 +330,24 @@ goal = [[3,4],[3,3],[4,2],[4,3],[5,5]]  # two steps
 
 goal = [[3,4],[3,3],[3,2],[4,3],[5,5]]  # two steps
 
-goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]  # two steps
+MAX_STEPS = 28
+MAX_DEPTH = 6
+goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
 
-#goal = [[2,2],[3,2],[4,2],[4,4],[5,4]]  # one step
+MAX_STEPS = 32
+MAX_DEPTH = 9
+goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
 s.setup( mapstr)
 
+start_time = datetime.datetime.now()
+
 Solve( s, goal)
 
+diff_time = datetime.datetime.now() - start_time
+
+print( "Time Diff:{}".format(diff_time))
+print( "Duplicate Key Count :{}".format(g_para_duplicate_state_count))
+print( "Duplicate Key Count2:{}".format(g_para_duplicate_state_count2))
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
