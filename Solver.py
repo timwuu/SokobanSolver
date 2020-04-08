@@ -3,6 +3,12 @@ import hashlib
 import copy
 
 # Notation: [ROW][COL]
+# Note: Add Forbidden Cells to improve the efficiency
+
+FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
+
+def isNotForbidden( pos):
+    return ( pos not in FORBIDDEN )
 
 class STATE:
     
@@ -213,24 +219,32 @@ def SetEligibleMoves( map, state, moves):
         y = elem[1]
 
         if( map[x-1][y]>=0 and map[x+1][y]>=0 ):    #UP/DOWN
-            moves.append([[x+1,y],[-1,0],map[x+1][y], i])
-            moves.append([[x-1,y],[1,0],map[x-1][y], i])
+            if( isNotForbidden([x-1,y])):
+                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
+            if( isNotForbidden([x+1,y])):
+                moves.append([[x-1,y],[1,0],map[x-1][y], i])
 
         if( map[x][y-1]>=0 and map[x][y+1]>=0):    #LEFT/RIGHT
-            moves.append([[x,y+1],[0,-1],map[x][y+1], i])
-            moves.append([[x,y-1],[0,1],map[x][y-1], i])
+            if( isNotForbidden([x,y-1])):
+                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
+            if( isNotForbidden([x,y+1])):
+                moves.append([[x,y-1],[0,1],map[x][y-1], i])
 
         if( map[x-1][y]==-9 and map[x+1][y]>=0 ):    #UP
-            moves.append([[x+1,y],[-1,0],map[x+1][y], i])
+            if( isNotForbidden([x-1,y])):
+                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
 
         if( map[x-1][y]>=0 and map[x+1][y]==-9 ):    #DOWN
-            moves.append([[x-1,y],[1,0],map[x-1][y], i])
+            if( isNotForbidden([x+1,y])):
+                moves.append([[x-1,y],[1,0],map[x-1][y], i])
 
         if( map[x][y-1]==-9 and map[x][y+1]>=0):    #LEFT
-            moves.append([[x,y+1],[0,-1],map[x][y+1], i])
+            if( isNotForbidden([x,y-1])):
+                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
 
         if( map[x][y-1]>=0 and map[x][y+1]==-9):    #RIGHT
-            moves.append([[x,y-1],[0,1],map[x][y-1], i])
+            if( isNotForbidden([x,y+1])):
+                moves.append([[x,y-1],[0,1],map[x][y-1], i])
 
         i=i+1
 
@@ -254,7 +268,7 @@ def Solve( state, goal):
 
 def Solve2( map, state, goal, depth, total_steps, trace, log):
 
-    if( total_steps>20 or depth> 5):
+    if( total_steps>28 or depth> 6):
         #print( "total_steps:", total_steps, " depth:", depth)
         return False
 
@@ -270,16 +284,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
     SetEligibleMoves( map2, state, moves)
 
-    #print( moves)
+    #print( "DEPTH: {} MOVES: {} - {}".format( depth, len(moves), moves))
 
-    #print( state.get_hexdigest())
-
-    str_space=""
-
-    for i in range(0, depth+1):
-        str_space += "   "
-
-    str_space += " Move Box: {:d} Steps: {:d} Dir: {}"
+    str_space = " Move Box: {:d} Steps: {:d} Dir: {}"
 
     #Try each possible move
     for mov in moves:
@@ -295,8 +302,6 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
 
         #print( str_log)
 
-        log.append( str_log)
-
         new_state.moveBox( box_no, mov_dir)
 
         #check if meet goal
@@ -304,6 +309,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
             print( "Reach Goals!")
             print( "Depth:", depth+1)
             print( "Total Steps:", total_steps+steps+1)
+    
+            log.append( str_log)
+
             for trc_log in log:
                 print( trc_log)
             return True
@@ -314,9 +322,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
 
         if( key in trace):
             #print( "duplicate state!")
-            log.pop()
             continue
 
+        log.append( str_log)
         trace.append( key)
 
         #print( new_state.get_hexdigest())
@@ -324,6 +332,8 @@ def Solve2( map, state, goal, depth, total_steps, trace, log):
         #start a new node for search
         if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log)):
             return True
+            #log.pop()
+            #trace.remove( key)
             #continue    #Find next alternative solution
         else:
             log.pop()
@@ -345,6 +355,18 @@ goal = [[3,3],[3,4],[3,5],[4,4],[4,5]]
 #goal = [[3,5],[3,2],[4,2],[4,4],[5,4]]  # two steps
 
 goal = [[3,5],[3,2],[4,2],[4,4],[5,3]]  # two steps
+
+goal = [[3,5],[3,3],[4,2],[4,4],[5,3]]  # two steps
+
+goal = [[3,4],[3,3],[4,2],[4,4],[5,5]]  # two steps
+
+goal = [[3,4],[3,3],[4,2],[4,3],[5,5]]  # two steps
+
+goal = [[3,4],[3,3],[3,2],[4,3],[5,5]]  # two steps
+
+goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]  # two steps
+
+#goal = [[2,2],[3,2],[4,2],[4,4],[5,4]]  # one step
 
 s.setup( mapstr)
 
