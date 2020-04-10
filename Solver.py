@@ -13,6 +13,15 @@ import threading
 #       ?Multithreading
 #       ?Save Node while max steps/depths exceeded
 
+# DEFINE:
+# map[][]:
+# -1: WALL
+# -2: BOX
+# -3: PLAYER
+# -9: BLANK
+
+MAP_BLANK = -9
+
 MAX_STEPS = 28  
 MAX_DEPTH = 6
 MAP_ROW = 8
@@ -25,6 +34,8 @@ g_para_duplicate_state_count = 0
 g_para_duplicate_state_count2 = 0
 g_progress = 0.0
 g_progress_prv_time = datetime.datetime.now()
+
+g_tm_CountSteps2 = datetime.timedelta(0)
 
 def isNotForbidden( pos):
     return ( pos not in FORBIDDEN )
@@ -111,6 +122,10 @@ class STATE:
 
 def CountSteps2( map, state):
 
+    global g_tm_CountSteps2
+
+    tm_tmp = datetime.datetime.now()
+
     i=1
 
     lst =  [[state._player[0],state._player[1]]]
@@ -128,16 +143,16 @@ def CountSteps2( map, state):
             x = elem[0]
             y = elem[1]
 
-            if( map[x-1][y]==0):    #UP
+            if( map[x-1][y]== MAP_BLANK):    #UP
                 map[x-1][y] = i
                 next_lst.append([x-1,y])
-            if( map[x+1][y]==0):    #DOWN
+            if( map[x+1][y]== MAP_BLANK):    #DOWN
                 map[x+1][y] = i
                 next_lst.append([x+1,y])
-            if( map[x][y-1]==0):    #LEFT
+            if( map[x][y-1]== MAP_BLANK):    #LEFT
                 map[x][y-1] = i
                 next_lst.append([x,y-1])
-            if( map[x][y+1]==0):    #RIGHT
+            if( map[x][y+1]== MAP_BLANK):    #RIGHT
                 map[x][y+1] = i
                 next_lst.append([x,y+1])
 
@@ -149,20 +164,12 @@ def CountSteps2( map, state):
 
         pass
 
-    #set map[i][j]==0 to -9
-    for i in range(0,MAP_ROW):
-        for j in range(0,MAP_COL):
-            if( map[i][j]==0):
-                map[i][j]= -9
-
     map[state._player[0]][state._player[1]] = 0
+
+    g_tm_CountSteps2 += datetime.datetime.now() - tm_tmp
 
     pass
 
-#  0: BLANK
-# -1: WALL
-# -2: BOX
-# -3: PLAYER
 def CountSteps( map, state):
 
     #print( state.get_hexdigest())
@@ -194,40 +201,42 @@ def SearchEligibleMoves( map, state, moves, log):
         x = elem[0]
         y = elem[1]
 
-        if( map[x-1][y]>=0 and map[x+1][y]>=0 ):    #UP/DOWN
+        _U = map[x-1][y]
+        _D = map[x+1][y]
+        _L = map[x][y-1]
+        _R = map[x][y+1]
+
+        if( _U>=0 and _D>=0 ):    #UP/DOWN
             if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
+                moves.append([[x+1,y],[-1,0],_D, i])
             if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],map[x-1][y], i])
+                moves.append([[x-1,y],[1,0],_U, i])
+        else:
+            if( _U== MAP_BLANK and _D>=0 ):    #UP
+                if( isNotForbidden([x-1,y])):
+                    moves.append([[x+1,y],[-1,0],_D, i])
 
-        if( map[x][y-1]>=0 and map[x][y+1]>=0):    #LEFT/RIGHT
+            if( _U>=0 and _D== MAP_BLANK ):    #DOWN
+                if( isNotForbidden([x+1,y])):
+                    moves.append([[x-1,y],[1,0],_U, i])
+
+        if( _L>=0 and _R>=0):    #LEFT/RIGHT
             if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
+                moves.append([[x,y+1],[0,-1],_R, i])
             if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],map[x][y-1], i])
+                moves.append([[x,y-1],[0,1],_L, i])
+        else:
+            if( _L== MAP_BLANK and _R>=0):    #LEFT
+                if( isNotForbidden([x,y-1])):
+                    moves.append([[x,y+1],[0,-1],_R, i])
 
-        if( map[x-1][y]==-9 and map[x+1][y]>=0 ):    #UP
-            if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
-
-        if( map[x-1][y]>=0 and map[x+1][y]==-9 ):    #DOWN
-            if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],map[x-1][y], i])
-
-        if( map[x][y-1]==-9 and map[x][y+1]>=0):    #LEFT
-            if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
-
-        if( map[x][y-1]>=0 and map[x][y+1]==-9):    #RIGHT
-            if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],map[x][y-1], i])
+            if( _L>=0 and _R== MAP_BLANK):    #RIGHT
+                if( isNotForbidden([x,y+1])):
+                    moves.append([[x,y-1],[0,1],_L, i])
 
     j=i
 
-    i= -1
-
-    for elem in state._box:
-        i+= 1
+    for i, elem in enumerate( state._box):
 
         if(j==i):
             continue
@@ -235,41 +244,46 @@ def SearchEligibleMoves( map, state, moves, log):
         x = elem[0]
         y = elem[1]
 
-        if( map[x-1][y]>=0 and map[x+1][y]>=0 ):    #UP/DOWN
+        _U = map[x-1][y]
+        _D = map[x+1][y]
+        _L = map[x][y-1]
+        _R = map[x][y+1]
+
+        if( _U>=0 and _D>=0 ):    #UP/DOWN
             if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
+                moves.append([[x+1,y],[-1,0],_D, i])
             if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],map[x-1][y], i])
+                moves.append([[x-1,y],[1,0],_U, i])
+        else:
+            if( _U== MAP_BLANK and _D>=0 ):    #UP
+                if( isNotForbidden([x-1,y])):
+                    moves.append([[x+1,y],[-1,0],_D, i])
 
-        if( map[x][y-1]>=0 and map[x][y+1]>=0):    #LEFT/RIGHT
+            if( _U>=0 and _D== MAP_BLANK ):    #DOWN
+                if( isNotForbidden([x+1,y])):
+                    moves.append([[x-1,y],[1,0],_U, i])
+
+        if( _L>=0 and _R>=0):    #LEFT/RIGHT
             if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
+                moves.append([[x,y+1],[0,-1],_R, i])
             if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],map[x][y-1], i])
+                moves.append([[x,y-1],[0,1],_L, i])
+        else:
+            if( _L== MAP_BLANK and _R>=0):    #LEFT
+                if( isNotForbidden([x,y-1])):
+                    moves.append([[x,y+1],[0,-1],_R, i])
 
-        if( map[x-1][y]==-9 and map[x+1][y]>=0 ):    #UP
-            if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],map[x+1][y], i])
-
-        if( map[x-1][y]>=0 and map[x+1][y]==-9 ):    #DOWN
-            if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],map[x-1][y], i])
-
-        if( map[x][y-1]==-9 and map[x][y+1]>=0):    #LEFT
-            if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],map[x][y+1], i])
-
-        if( map[x][y-1]>=0 and map[x][y+1]==-9):    #RIGHT
-            if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],map[x][y-1], i])
+            if( _L>=0 and _R== MAP_BLANK):    #RIGHT
+                if( isNotForbidden([x,y+1])):
+                    moves.append([[x,y-1],[0,1],_L, i])
 
     pass
-
 
 def Solve( state, goal):
 
     # map : WALLS ONLY
-    map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
+    # map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
+    map = np.full((MAP_ROW, MAP_COL), fill_value=MAP_BLANK, dtype='b')
 
     for val in state._wall:
         map[val[0]][val[1]]= -1
@@ -310,12 +324,8 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
     else:
         output_progress( progress_slot)  # END_NODE
 
-    i_mov= -1
-
     #Try each possible move
-    for mov in moves:
-
-        i_mov += 1
+    for i_mov, mov in enumerate(moves):
 
         #if( depth<2): print( depth, mov, mv_progress_slot)
         
@@ -473,10 +483,13 @@ x.join()
 diff_time = datetime.datetime.now() - start_time
 
 print( "Time Used: {}".format(diff_time))
+print( "Time Used (g_tm_CountSteps2): {}".format(g_tm_CountSteps2))
+
 print( "Total State Searched: {}".format(g_para_total_state_searched))
 print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
 print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))
 print( "Duplicate Key Count2: {}".format(g_para_duplicate_state_count2))
+
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
 # Logs:
