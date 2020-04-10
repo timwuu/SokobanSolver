@@ -2,6 +2,7 @@ import numpy as np
 import hashlib
 import copy
 import datetime
+import threading
 
 # Notation: [ROW][COL]
 # Note: Add Forbidden Cells to improve the efficiency
@@ -9,6 +10,8 @@ import datetime
 #       Add Progress Monitoring
 #       ?Store Search Nodes for next batch
 #       ?Add Heuristic Move
+#       ?Multithreading
+#       ?Save Node while max steps/depths exceeded
 
 MAX_STEPS = 28  
 MAX_DEPTH = 6
@@ -17,6 +20,7 @@ MAP_COL = 8
 FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
 
 g_para_total_state_searched = 0
+g_para_max_exceeded = 0
 g_para_duplicate_state_count = 0
 g_para_duplicate_state_count2 = 0
 g_progress = 0.0
@@ -284,6 +288,8 @@ def Solve( state, goal):
 def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
     if( total_steps> MAX_STEPS or depth> MAX_DEPTH):
+        global g_para_max_exceeded
+        g_para_max_exceeded += 1
         output_progress( progress_slot)  # END_NODE
         return False
 
@@ -420,51 +426,80 @@ goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 # MAX_DEPTH = 10
 # goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used:0:58:33.046980
-MAX_STEPS = 40
-MAX_DEPTH = 13
-goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
+# # Time Used:0:29:37.108837
+# MAX_STEPS = 40
+# MAX_DEPTH = 13
+# goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
+# # Time Used:
+# MAX_STEPS = 45
 # MAX_DEPTH = 16
 # goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
 
+# # Time Used:
+# MAX_STEPS = 46
 # MAX_DEPTH = 17
 # goal = [[4,4],[3,4],[2,5],[4,3],[2,2]]
 
+# # Time Used:
+# MAX_STEPS = 52
+# MAX_DEPTH = 19
+# goal = [[4,4],[3,4],[4,5],[4,3],[2,2]]
+
+# # Time Used:
+# MAX_STEPS = 61
+# MAX_DEPTH = 20
+# goal = [[4,4],[3,4],[4,5],[3,3],[2,2]]
+
+# # Time Used:
+# MAX_STEPS = 71
+# MAX_DEPTH = 24
+# goal = [[4,4],[3,4],[4,5],[3,3],[3,5]]
+
 s.setup( mapstr)
+
+x = threading.Thread( target=Solve, args=(s,goal))
 
 g_progress_prv_time = datetime.datetime.now()
 
 start_time = datetime.datetime.now()
 
-Solve( s, goal)
+x.start()
+
+#Solve( s, goal)
+
+x.join()
 
 diff_time = datetime.datetime.now() - start_time
 
-print( "Time Used:{}".format(diff_time))
-print( "Total State Searched:{}".format(g_para_total_state_searched))
-print( "Duplicate Key Count :{}".format(g_para_duplicate_state_count))
-print( "Duplicate Key Count2:{}".format(g_para_duplicate_state_count2))
+print( "Time Used: {}".format(diff_time))
+print( "Total State Searched: {}".format(g_para_total_state_searched))
+print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
+print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))
+print( "Duplicate Key Count2: {}".format(g_para_duplicate_state_count2))
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
 # Logs:
-# Time Used:0:58:33.046980
+# Time Used:0:29:37.108837
+# Total State Searched:    184,658
+# Duplicate Key Count : 11,319,687
+# Duplicate Key Count2:  3,602,166
 # MAX_STEPS = 40
 # MAX_DEPTH = 13
 # goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
 # Depth: 13
 # Total Steps: 40
-#  Move Box: 0 Steps: 1 Dir: [1, 0]
-#  Move Box: 4 Steps: 4 Dir: [0, 1]
-#  Move Box: 1 Steps: 7 Dir: [0, 1]
-#  Move Box: 3 Steps: 6 Dir: [0, -1]
-#  Move Box: 2 Steps: 3 Dir: [-1, 0]
-#  Move Box: 2 Steps: 0 Dir: [-1, 0]
-#  Move Box: 2 Steps: 2 Dir: [0, 1]
-#  Move Box: 2 Steps: 0 Dir: [0, 1]
-#  Move Box: 2 Steps: 0 Dir: [0, 1]
-#  Move Box: 0 Steps: 0 Dir: [1, 0]
-#  Move Box: 4 Steps: 4 Dir: [0, -1]
-#  Move Box: 4 Steps: 0 Dir: [0, -1]
-#  Move Box: 4 Steps: 0 Dir: [0, -1]
+#  Move Box: 0 Steps: 1 Dir: [1, 0] i: 0
+#  Move Box: 4 Steps: 4 Dir: [0, 1] i: 6
+#  Move Box: 1 Steps: 7 Dir: [0, 1] i: 3
+#  Move Box: 3 Steps: 6 Dir: [0, -1] i: 2
+#  Move Box: 2 Steps: 3 Dir: [-1, 0] i: 2
+#  Move Box: 2 Steps: 0 Dir: [-1, 0] i: 0
+#  Move Box: 2 Steps: 2 Dir: [0, 1] i: 0
+#  Move Box: 2 Steps: 0 Dir: [0, 1] i: 1
+#  Move Box: 2 Steps: 0 Dir: [0, 1] i: 1
+#  Move Box: 0 Steps: 0 Dir: [1, 0] i: 2
+#  Move Box: 4 Steps: 4 Dir: [0, -1] i: 5
+#  Move Box: 4 Steps: 0 Dir: [0, -1] i: 0
+#  Move Box: 4 Steps: 0 Dir: [0, -1] i: 0
