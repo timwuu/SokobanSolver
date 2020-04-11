@@ -1,4 +1,3 @@
-import numpy as np
 import hashlib
 import copy
 import datetime
@@ -12,6 +11,8 @@ import threading
 #       ?Add Heuristic Move
 #       ?Multithreading
 #       ?Save Node while max steps/depths exceeded
+#
+#       2020.04.11 Changed Numpy array to list
 
 # DEFINE:
 # map[][]:
@@ -30,6 +31,8 @@ MAP_ROW = 8
 MAP_COL = 8
 FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
 
+g_cnt_mov=0
+
 g_para_total_state_searched = 0
 g_para_max_exceeded = 0
 g_para_duplicate_state_count = 0
@@ -38,10 +41,6 @@ g_progress = 0.0
 g_progress_prv_time = datetime.datetime.now()
 
 g_tm_CountSteps2 = datetime.timedelta(0)
-
-g_lst_1 = np.empty((MAX_STEP_COUNT_LST_SIZE, 2),dtype='u2')
-g_lst_2 = np.empty((MAX_STEP_COUNT_LST_SIZE, 2),dtype='u2')
-
 
 def isNotForbidden( pos):
     return ( pos not in FORBIDDEN )
@@ -56,8 +55,8 @@ class STATE:
         i=-1
         j=0
 
-        box=[]
-        wall=[]
+        self._box=[]
+        self._wall=[]
 
         for c in mapstr:
             if( c=='#'):
@@ -66,62 +65,46 @@ class STATE:
                continue
 
             if( c=='P'):
-                player = [i,j]
+                self._player = [i,j]
                 j=j+1
                 continue
 
             if( c=='W'):
-                wall.append([i,j])
+                self._wall.append([i,j])
                 j=j+1
                 continue
 
             if( c=='B'):
-                box.append([i,j])
+                self._box.append([i,j])
                 j=j+1
                 continue
 
             j=j+1
 
-        self.set_wall( wall)
-        self.set_box( box)
-        self.set_player( player)
-
         #print( self._player)
         #print( self._wall)
         #print( self._box)
 
-    def set_goal( self, lst):
-        self._goal = np.array( lst, dtype='b')
-
-    def set_box( self, lst):
-        self._box = np.array( lst, dtype='b')
-
-    def set_player( self, pos):
-        self._player = np.array( pos, dtype='b')
-
-    def set_wall( self, lst):
-        self._wall = np.array( lst, dtype='b')
-
     def get_hexdigest( self):
         m = hashlib.sha256()
-        m.update( self._player.tobytes())
+        m.update( bytes(self._player))
         #TODO: possible different orders for same positions of boxes
-        m.update( self._box.tobytes())  
+        for elem in self._box:
+            m.update( bytes(elem))
         return m.hexdigest()
-        
+    
     # print( "Move Box:", box_no, "Steps:", steps, "Dir:", mov_dir)
     def moveBox( self, box_no, mov_dir):
 
         self._player[0] = self._box[box_no][0] 
         self._player[1] = self._box[box_no][1]
 
-        self._box[box_no,0] += mov_dir[0] 
-        self._box[box_no,1] += mov_dir[1]
+        self._box[box_no][0] += mov_dir[0] 
+        self._box[box_no][1] += mov_dir[1]
     
     def matchGoal( self, goal):
-
         for elem in self._box:
-            if( [elem[0],elem[1]] not in goal):
+            if( elem not in goal):
                 return False
 
         return True
@@ -144,17 +127,17 @@ def CountSteps2( map, state):
 
         for x,y in lst:
 
-            if( map[x-1,y]== MAP_BLANK):    #UP
-                map[x-1,y] = i
+            if( map[x-1][y]== MAP_BLANK):    #UP
+                map[x-1][y] = i
                 next_lst.append([x-1,y])
-            if( map[x+1,y]== MAP_BLANK):    #DOWN
-                map[x+1,y] = i
+            if( map[x+1][y]== MAP_BLANK):    #DOWN
+                map[x+1][y] = i
                 next_lst.append([x+1,y])
-            if( map[x,y-1]== MAP_BLANK):    #LEFT
-                map[x,y-1] = i
+            if( map[x][y-1]== MAP_BLANK):    #LEFT
+                map[x][y-1] = i
                 next_lst.append([x,y-1])
-            if( map[x,y+1]== MAP_BLANK):    #RIGHT
-                map[x,y+1] = i
+            if( map[x][y+1]== MAP_BLANK):    #RIGHT
+                map[x][y+1] = i
                 next_lst.append([x,y+1])
 
         lst = next_lst
@@ -165,7 +148,7 @@ def CountSteps2( map, state):
 
         pass
 
-    map[state._player[0],state._player[1]] = 0
+    map[state._player[0]][state._player[1]] = 0
 
     g_tm_CountSteps2 += datetime.datetime.now() - tm_tmp
 
@@ -173,17 +156,12 @@ def CountSteps2( map, state):
 
 def CountSteps( map, state):
 
-    #print( state.get_hexdigest())
-
-    #map2 = map.copy()
-
     # Add BOX, PLAYER to map
     for val in state._box:
-        map[val[0],val[1]]= -2
+        map[val[0]][val[1]]= -2
 
-    map[state._player[0],state._player[1]] = -3
+    map[state._player[0]][state._player[1]] = -3
 
-    #print( map)
     CountSteps2( map, state)
 
     pass
@@ -199,10 +177,10 @@ def SearchEligibleMoves( map, state, moves, log):
 
         x, y = state._box[i]
 
-        _U = map[x-1,y]
-        _D = map[x+1,y]
-        _L = map[x,y-1]
-        _R = map[x,y+1]
+        _U = map[x-1][y]
+        _D = map[x+1][y]
+        _L = map[x][y-1]
+        _R = map[x][y+1]
 
         if( _U>=0 and _D>=0 ):    #UP/DOWN
             if( isNotForbidden([x-1,y])):
@@ -241,10 +219,10 @@ def SearchEligibleMoves( map, state, moves, log):
 
         x, y = elem
 
-        _U = map[x-1,y]
-        _D = map[x+1,y]
-        _L = map[x,y-1]
-        _R = map[x,y+1]
+        _U = map[x-1][y]
+        _D = map[x+1][y]
+        _L = map[x][y-1]
+        _R = map[x][y+1]
 
         if( _U>=0 and _D>=0 ):    #UP/DOWN
             if( isNotForbidden([x-1,y])):
@@ -279,11 +257,12 @@ def SearchEligibleMoves( map, state, moves, log):
 def Solve( state, goal):
 
     # map : WALLS ONLY
-    # map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
-    map = np.full((MAP_ROW, MAP_COL), fill_value=MAP_BLANK, dtype='b')
+    #REMOVE map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
+    #REMOVE map = np.full((MAP_ROW, MAP_COL), fill_value=MAP_BLANK, dtype='b')
+    map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
 
     for val in state._wall:
-        map[val[0],val[1]]= -1
+        map[val[0]][val[1]]= -1
 
     trace = {}
     log = []
@@ -304,19 +283,16 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         output_progress( progress_slot)  # END_NODE
         return False
 
+
     # map2 : WALLS plus STEP COUNT
-    map2 = map.copy()
+    map2 = copy.deepcopy(map)
 
     #Count steps to reachable blank squares
     CountSteps( map2, state)
 
-    #print( map2)
-
     #Remove illegible moves for the BOX
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
     SearchEligibleMoves( map2, state, moves, log)
- 
-    #print(moves)
 
     if( len(moves)):
         mv_progress_slot = progress_slot/len(moves)
@@ -334,13 +310,8 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         new_state = copy.deepcopy(state)
 
-        #print( new_state.get_hexdigest())
-
-        #print( str_log)
-
         new_state.moveBox( box_no, mov_dir)
 
-        #print( box_no, mov_dir)
         #check if meet goal
         if( new_state.matchGoal(goal)):
             print( "Reach Goals!")
@@ -405,10 +376,10 @@ mapstr = "#---WWWW-"+"#WWWW PW-"+"#W   B W-"+"#W B   WW"+"#WWB B  W"+"#-W  B  W"
 
 goal = [[3,3],[3,4],[3,5],[4,4],[4,5]]
 
-goal = [[3,4],[3,2],[4,2],[4,4],[5,4]]  # one step
+#goal = [[3,4],[3,2],[4,2],[4,4],[5,4]]  # one step
 
 MAX_STEPS = 21
-MAX_DEPTH = 5
+MAX_DEPTH = 4
 goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 
 # goal = [[3,5],[3,2],[4,2],[4,4],[5,4]]  # two steps
@@ -417,7 +388,7 @@ goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 
 # MAX_STEPS = 21
 # MAX_DEPTH = 4
-# goal = [[3,5],[3,3],[4,2],[4,4],[5,3]]
+# goal = [[3,5],[3,3],[4,2],[4,4],[5,3]]  # two steps
 
 # goal = [[3,4],[3,3],[4,2],[4,4],[5,5]]  # two steps
 
@@ -425,7 +396,7 @@ goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 
 # goal = [[3,4],[3,3],[3,2],[4,3],[5,5]]  # two steps
 
-# Time Used:0:00:01.915810
+# # Time Used:0:00:01.915810
 # MAX_STEPS = 28
 # MAX_DEPTH = 6
 # goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
