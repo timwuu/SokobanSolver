@@ -135,9 +135,15 @@ class STATE:
         self._box[box_no][1] += mov_dir[1]
     
     def matchGoal( self, goal):
+
+        #g_tm_start()
+
         for elem in self._box:
             if( elem not in goal):
+                #g_tm_add()
                 return False
+
+        #g_tm_add()
 
         return True
 
@@ -316,7 +322,11 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         return False
 
     # map2 : WALLS plus STEP COUNT
-    map2 = copy.deepcopy(map)
+    #g_tm_start()
+    map2=[]
+    for elem in map:
+        map2.append([*elem])  #2020.04.11 timijk: avoid map2 = copy.deepcopy(map)
+    #g_tm_add()
 
     #Count steps to reachable blank squares
     CountSteps( map2, state)
@@ -324,12 +334,14 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
     #Remove illegible moves for the BOX
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
 
+    #g_tm_start()
     SearchEligibleMoves( map2, state, moves, log)
 
     if( len(moves)):
         mv_progress_slot = progress_slot/len(moves)
     else:
         output_progress( progress_slot)  # END_NODE
+    #g_tm_add()
 
     #Try each possible move
     for i_mov, mov in enumerate(moves):
@@ -340,7 +352,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         box_no = mov[3]
         mov_dir = mov[1]
 
+        #g_tm_start()
         new_state = STATE( state) #2020.04.11 timijk: avoid copy.deepcopy(state)
+        #g_tm_add()
 
         new_state.moveBox( box_no, mov_dir)
 
@@ -359,7 +373,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         #check if new_state is duplicate
         
+        g_tm_start()
         key = new_state.get_hexdigest()
+        g_tm_add()
 
         if( key in trace):
             #print( "duplicate state!")
@@ -468,23 +484,30 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Time Used (g_tm_CountSteps2): 0:00:02.547291
 
 # IMPROVED STATE COPY
-# Time Used: 0:00:26.865937
-# Time Used (g_tm_CountSteps2): 0:00:02.595216
+# Time Used: 0:00:16.874911
+# Time Used (g_tm_CountSteps2): 0:00:02.490403
 # Total State Key Calced: 994934
 # Total State Searched: 53777
 # Total Max Exceeded: 553840
 # Duplicate Key Count : 941157
 # Duplicate Key Count2: 202331
+# Time Diff (STATE Copy): 0:00:05.010297
+# Time Diff (Match Goal): 0:00:00.849648
+# Time Diff (Map Copy): 0:00:00.340164
+# Time Diff (Search Moves): 0:00:01.679781
+# Time Diff (get_hexdigest): 0:00:03.941602
 MAX_STEPS = 33
 MAX_DEPTH = 10
 goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:21:59.884430
-# Time Used (g_tm_CountSteps2): 0:07:51.087651
+# Time Used: 0:03:16.598457
+# Time Used (g_tm_CountSteps2): 0:00:30.609449
+# Total State Key Calced: 11498834
 # Total State Searched: 184658
 # Total Max Exceeded: 4987044
 # Duplicate Key Count : 11314176
 # Duplicate Key Count2: 3603415
+# Time Diff (STATE Copy): 0:00:55.282446
 # MAX_STEPS = 40
 # MAX_DEPTH = 13
 # goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
@@ -538,29 +561,7 @@ print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
 print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))
 print( "Duplicate Key Count2: {}".format(g_para_duplicate_state_count2))
 
+g_tm_print("get_hexdigest")
+
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
-# Logs:
-# Time Used:0:29:37.108837
-# Total State Searched:    184,658
-# Duplicate Key Count : 11,319,687
-# Duplicate Key Count2:  3,602,166
-# MAX_STEPS = 40
-# MAX_DEPTH = 13
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
-
-# Depth: 13
-# Total Steps: 40
-#  Move Box: 0 Steps: 1 Dir: [1, 0] i: 0
-#  Move Box: 4 Steps: 4 Dir: [0, 1] i: 6
-#  Move Box: 1 Steps: 7 Dir: [0, 1] i: 3
-#  Move Box: 3 Steps: 6 Dir: [0, -1] i: 2
-#  Move Box: 2 Steps: 3 Dir: [-1, 0] i: 2
-#  Move Box: 2 Steps: 0 Dir: [-1, 0] i: 0
-#  Move Box: 2 Steps: 2 Dir: [0, 1] i: 0
-#  Move Box: 2 Steps: 0 Dir: [0, 1] i: 1
-#  Move Box: 2 Steps: 0 Dir: [0, 1] i: 1
-#  Move Box: 0 Steps: 0 Dir: [1, 0] i: 2
-#  Move Box: 4 Steps: 4 Dir: [0, -1] i: 5
-#  Move Box: 4 Steps: 0 Dir: [0, -1] i: 0
-#  Move Box: 4 Steps: 0 Dir: [0, -1] i: 0

@@ -347,8 +347,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         box_no = mov[3]
         mov_dir = mov[1]
 
+        g_tm_start()
         new_state = copy.deepcopy(state)
-
+        g_tm_add()
 
         new_state.moveBox( box_no, mov_dir)
 
@@ -464,15 +465,16 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # MAX_DEPTH = 9
 # goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:01:44.899962
-# Time Used (g_tm_CountSteps2): 0:00:34.329142
+# Time Used: 0:01:46.428706
+# Time Used (g_tm_CountSteps2): 0:00:34.125447
 # Total State Searched: 53777
 # Total Max Exceeded: 553840
 # Duplicate Key Count : 941157
 # Duplicate Key Count2: 202331
-# MAX_STEPS = 33
-# MAX_DEPTH = 10
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
+# Time Diff (STATE Copy): 0:00:15.649496
+MAX_STEPS = 33
+MAX_DEPTH = 10
+goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
 # Time Used: 0:21:59.884430
 # Time Used (g_tm_CountSteps2): 0:07:51.087651
@@ -531,6 +533,8 @@ print( "Total State Searched: {}".format(g_para_total_state_searched))
 print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
 print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))
 print( "Duplicate Key Count2: {}".format(g_para_duplicate_state_count2))
+
+g_tm_print("STATE Copy")
 
 # Setup Map and State:{ Goal, Box, Player, Wall }
 
