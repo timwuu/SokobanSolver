@@ -14,6 +14,7 @@ import threading
 #
 #       2020.04.11 Changed Numpy array to list
 #       2020.04.11 Improved State Copy
+#       2020.04.11 Removed _wall in STATE
 
 # DEFINE:
 # map[][]:
@@ -35,6 +36,7 @@ FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
 g_cnt_mov=0
 
 g_para_total_state_searched = 0
+g_para_no_further_moves = 0
 g_para_max_exceeded = 0
 g_para_duplicate_state_count = 0
 g_para_duplicate_state_count2 = 0
@@ -68,52 +70,15 @@ def g_tm_print( func_name):
 class STATE:
     
     def __init__( self, s=None):
+        self._box=[]
+        self._player=None
+
         if( s is not None):
-            self._box=[]
             for elem in s._box:
                 self._box.append( [*elem])
 
-            self._wall = []
-            for elem in s._wall:
-                self._wall.append( [*elem])
-                
             self._player = [*s._player]  #faster copy
             #self._player = list( s._player)
-
-    def setup( self, mapstr):
-
-        i=-1
-        j=0
-
-        self._box=[]
-        self._wall=[]
-
-        for c in mapstr:
-            if( c=='#'):
-               i=i+1
-               j=0
-               continue
-
-            if( c=='P'):
-                self._player = [i,j]
-                j=j+1
-                continue
-
-            if( c=='W'):
-                self._wall.append([i,j])
-                j=j+1
-                continue
-
-            if( c=='B'):
-                self._box.append([i,j])
-                j=j+1
-                continue
-
-            j=j+1
-
-        #print( self._player)
-        #print( self._wall)
-        #print( self._box)
 
     def get_hexdigest( self):
         global g_para_hexdigest
@@ -146,6 +111,38 @@ class STATE:
         #g_tm_add()
 
         return True
+
+def setup( map, state, mapstr):
+
+    i=-1
+    j=0
+
+    for c in mapstr:
+        if( c=='#'):
+            i=i+1
+            j=0
+            continue
+
+        if( c=='P'):
+            state._player = [i,j]
+            j=j+1
+            continue
+
+        if( c=='W'):
+            map[i][j]= -1
+            j=j+1
+            continue
+
+        if( c=='B'):
+            state._box.append([i,j])
+            j=j+1
+            continue
+
+        j=j+1
+
+        #print( self._player)
+        #print( self._wall)
+        #print( self._box)
 
 def CountSteps2( map, state):
 
@@ -292,15 +289,7 @@ def SearchEligibleMoves( map, state, moves, log):
 
     pass
 
-def Solve( state, goal):
-
-    # map : WALLS ONLY
-    #REMOVE map = np.zeros((MAP_ROW, MAP_COL),dtype='b')
-    #REMOVE map = np.full((MAP_ROW, MAP_COL), fill_value=MAP_BLANK, dtype='b')
-    map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
-
-    for x,y in state._wall:
-        map[x][y]= -1
+def Solve( map, state, goal):
 
     trace = {}
     log = []
@@ -340,6 +329,8 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
     if( len(moves)):
         mv_progress_slot = progress_slot/len(moves)
     else:
+        global g_para_no_further_moves
+        g_para_no_further_moves += 1
         output_progress( progress_slot)  # END_NODE
     #g_tm_add()
 
@@ -484,9 +475,10 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Time Used (g_tm_CountSteps2): 0:00:02.547291
 
 # IMPROVED STATE COPY
-# Time Used: 0:00:16.874911
+# Time Used: 0:00:12.847308
 # Time Used (g_tm_CountSteps2): 0:00:02.490403
 # Total State Key Calced: 994934
+# Total No Further Moves: 9089
 # Total State Searched: 53777
 # Total Max Exceeded: 553840
 # Duplicate Key Count : 941157
@@ -537,16 +529,20 @@ goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 # MAX_DEPTH = 24
 # goal = [[4,4],[3,4],[4,5],[3,3],[3,5]]
 
-s.setup( mapstr)
+
+# map : WALLS ONLY
+map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
+
+setup( map, s, mapstr)
 
 g_progress_prv_time = datetime.datetime.now()
 
 start_time = datetime.datetime.now()
 
 if True:
-    Solve( s, goal)
+    Solve( map, s, goal)
 else:
-    x = threading.Thread( target=Solve, args=(s,goal))
+    x = threading.Thread( target=Solve, args=(map,s,goal))
     x.start()
     x.join()
 
@@ -556,6 +552,7 @@ print( "Time Used: {}".format(diff_time))
 print( "Time Used (g_tm_CountSteps2): {}".format(g_tm_CountSteps2))
 
 print( "Total State Key Calced: {}".format(g_para_hexdigest))
+print( "Total No Further Moves: {}".format(g_para_no_further_moves))
 print( "Total State Searched: {}".format(g_para_total_state_searched))
 print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
 print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))
