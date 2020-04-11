@@ -13,6 +13,7 @@ import threading
 #       ?Save Node while max steps/depths exceeded
 #
 #       2020.04.11 Changed Numpy array to list
+#       2020.04.11 Improved State Copy
 
 # DEFINE:
 # map[][]:
@@ -42,13 +43,42 @@ g_progress_prv_time = datetime.datetime.now()
 
 g_tm_CountSteps2 = datetime.timedelta(0)
 
+g_para_hexdigest = 0
+
+g_para_tm_start = datetime.datetime.now()
+g_para_tm_diff = datetime.timedelta(0)
+
 def isNotForbidden( pos):
     return ( pos not in FORBIDDEN )
 
+def g_tm_start():
+    global g_para_tm_start
+    g_para_tm_start = datetime.datetime.now()
+    
+def g_tm_add():
+    global g_para_tm_start
+    global g_para_tm_diff
+    g_para_tm_diff += datetime.datetime.now() - g_para_tm_start
+
+def g_tm_print( func_name):
+    global g_para_tm_diff
+    print( "Time Diff ({}): {}".format(func_name, g_para_tm_diff))
+
+
 class STATE:
     
-    def __init__( self):
-        pass
+    def __init__( self, s=None):
+        if( s is not None):
+            self._box=[]
+            for elem in s._box:
+                self._box.append( [*elem])
+
+            self._wall = []
+            for elem in s._wall:
+                self._wall.append( [*elem])
+                
+            self._player = [*s._player]  #faster copy
+            #self._player = list( s._player)
 
     def setup( self, mapstr):
 
@@ -86,6 +116,8 @@ class STATE:
         #print( self._box)
 
     def get_hexdigest( self):
+        global g_para_hexdigest
+        g_para_hexdigest += 1
         m = hashlib.sha256()
         m.update( bytes(self._player))
         #TODO: possible different orders for same positions of boxes
@@ -96,10 +128,10 @@ class STATE:
     # print( "Move Box:", box_no, "Steps:", steps, "Dir:", mov_dir)
     def moveBox( self, box_no, mov_dir):
 
-        self._player[0] = self._box[box_no][0] 
+        self._player[0] = self._box[box_no][0]
         self._player[1] = self._box[box_no][1]
 
-        self._box[box_no][0] += mov_dir[0] 
+        self._box[box_no][0] += mov_dir[0]
         self._box[box_no][1] += mov_dir[1]
     
     def matchGoal( self, goal):
@@ -110,10 +142,6 @@ class STATE:
         return True
 
 def CountSteps2( map, state):
-
-    global g_tm_CountSteps2
-
-    tm_tmp = datetime.datetime.now()
 
     i=1
 
@@ -150,19 +178,23 @@ def CountSteps2( map, state):
 
     map[state._player[0]][state._player[1]] = 0
 
-    g_tm_CountSteps2 += datetime.datetime.now() - tm_tmp
-
     pass
 
 def CountSteps( map, state):
 
     # Add BOX, PLAYER to map
-    for val in state._box:
-        map[val[0]][val[1]]= -2
+    for x,y in state._box:
+        map[x][y]= -2
 
     map[state._player[0]][state._player[1]] = -3
 
+    global g_tm_CountSteps2
+
+    tm_tmp = datetime.datetime.now()
+
     CountSteps2( map, state)
+
+    g_tm_CountSteps2 += datetime.datetime.now() - tm_tmp
 
     pass
 
@@ -261,8 +293,8 @@ def Solve( state, goal):
     #REMOVE map = np.full((MAP_ROW, MAP_COL), fill_value=MAP_BLANK, dtype='b')
     map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
 
-    for val in state._wall:
-        map[val[0]][val[1]]= -1
+    for x,y in state._wall:
+        map[x][y]= -1
 
     trace = {}
     log = []
@@ -283,7 +315,6 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         output_progress( progress_slot)  # END_NODE
         return False
 
-
     # map2 : WALLS plus STEP COUNT
     map2 = copy.deepcopy(map)
 
@@ -292,6 +323,7 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
     #Remove illegible moves for the BOX
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
+
     SearchEligibleMoves( map2, state, moves, log)
 
     if( len(moves)):
@@ -308,9 +340,10 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         box_no = mov[3]
         mov_dir = mov[1]
 
-        new_state = copy.deepcopy(state)
+        new_state = STATE( state) #2020.04.11 timijk: avoid copy.deepcopy(state)
 
         new_state.moveBox( box_no, mov_dir)
+
 
         #check if meet goal
         if( new_state.matchGoal(goal)):
@@ -397,29 +430,54 @@ goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 # goal = [[3,4],[3,3],[3,2],[4,3],[5,5]]  # two steps
 
 # # Time Used:0:00:01.915810
-# MAX_STEPS = 28
-# MAX_DEPTH = 6
-# goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
+MAX_STEPS = 27
+MAX_DEPTH = 6
+goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
+
+# Time Used: 0:00:04.376139
+# Time Used (g_tm_CountSteps2): 0:00:00.389023
+# Total State Key Calced: 175582
+# Total State Searched: 18628
+# Total Max Exceeded: 111053
+# Duplicate Key Count : 156954
+# Duplicate Key Count2: 26714
+MAX_STEPS = 31
+MAX_DEPTH = 8
+goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 
 # Time Used: 0:00:46.802952
 # Time Used (g_tm_CountSteps2): 0:00:15.552429
+
+# Time Used: 0:00:49.079644
+# Time Used (g_tm_CountSteps2): 0:00:01.171708
+# Total State Key Calced: 459538
 # Total State Searched: 33324
 # Total Max Exceeded: 276172
 # Duplicate Key Count : 426214
 # Duplicate Key Count2: 79402
-MAX_STEPS = 32
-MAX_DEPTH = 9
-goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
+# MAX_STEPS = 32
+# MAX_DEPTH = 9
+# goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:02:12.665361
-# Time Used (g_tm_CountSteps2): 0:00:44.650142
+# OLD
+# Time Used: 0:01:44.899962
+# Time Used (g_tm_CountSteps2): 0:00:34.329142
+
+# OLD
+# Time Used: 0:01:42.817481
+# Time Used (g_tm_CountSteps2): 0:00:02.547291
+
+# IMPROVED STATE COPY
+# Time Used: 0:00:26.865937
+# Time Used (g_tm_CountSteps2): 0:00:02.595216
+# Total State Key Calced: 994934
 # Total State Searched: 53777
 # Total Max Exceeded: 553840
 # Duplicate Key Count : 941157
 # Duplicate Key Count2: 202331
-# MAX_STEPS = 33
-# MAX_DEPTH = 10
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
+MAX_STEPS = 33
+MAX_DEPTH = 10
+goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
 # Time Used: 0:21:59.884430
 # Time Used (g_tm_CountSteps2): 0:07:51.087651
@@ -474,6 +532,7 @@ diff_time = datetime.datetime.now() - start_time
 print( "Time Used: {}".format(diff_time))
 print( "Time Used (g_tm_CountSteps2): {}".format(g_tm_CountSteps2))
 
+print( "Total State Key Calced: {}".format(g_para_hexdigest))
 print( "Total State Searched: {}".format(g_para_total_state_searched))
 print( "Total Max Exceeded: {}".format(g_para_max_exceeded))
 print( "Duplicate Key Count : {}".format(g_para_duplicate_state_count))

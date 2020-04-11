@@ -42,9 +42,24 @@ g_tm_CountSteps2 = datetime.timedelta(0)
 g_lst_1 = np.empty((MAX_STEP_COUNT_LST_SIZE, 2),dtype='u2')
 g_lst_2 = np.empty((MAX_STEP_COUNT_LST_SIZE, 2),dtype='u2')
 
+g_para_tm_start = datetime.datetime.now()
+g_para_tm_diff = datetime.timedelta(0)
 
 def isNotForbidden( pos):
     return ( pos not in FORBIDDEN )
+
+def g_tm_start():
+    global g_para_tm_start
+    g_para_tm_start = datetime.datetime.now()
+    
+def g_tm_add():
+    global g_para_tm_start
+    global g_para_tm_diff
+    g_para_tm_diff += datetime.datetime.now() - g_para_tm_start
+
+def g_tm_print( func_name):
+    global g_para_tm_diff
+    print( "Time Diff ({}): {}".format(func_name, g_para_tm_diff))
 
 class STATE:
     
@@ -315,7 +330,7 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
     #Remove illegible moves for the BOX
     moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
     SearchEligibleMoves( map2, state, moves, log)
- 
+
     #print(moves)
 
     if( len(moves)):
@@ -334,11 +349,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         new_state = copy.deepcopy(state)
 
-        #print( new_state.get_hexdigest())
-
-        #print( str_log)
 
         new_state.moveBox( box_no, mov_dir)
+
 
         #print( box_no, mov_dir)
         #check if meet goal
@@ -430,18 +443,29 @@ goal = [[2,5],[3,2],[4,2],[4,4],[5,4]]  # one step
 # MAX_DEPTH = 6
 # goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
 
+# Time Used: 0:00:17.317066
+# Time Used (g_tm_CountSteps2): 0:00:05.415582
+# Total State Searched: 18628
+# Total Max Exceeded: 111053
+# Duplicate Key Count : 156954
+# Duplicate Key Count2: 26714
+MAX_STEPS = 31
+MAX_DEPTH = 8
+goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
+
+
 # Time Used: 0:00:46.802952
 # Time Used (g_tm_CountSteps2): 0:00:15.552429
 # Total State Searched: 33324
 # Total Max Exceeded: 276172
 # Duplicate Key Count : 426214
 # Duplicate Key Count2: 79402
-MAX_STEPS = 32
-MAX_DEPTH = 9
-goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
+# MAX_STEPS = 32
+# MAX_DEPTH = 9
+# goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:02:12.665361
-# Time Used (g_tm_CountSteps2): 0:00:44.650142
+# Time Used: 0:01:44.899962
+# Time Used (g_tm_CountSteps2): 0:00:34.329142
 # Total State Searched: 53777
 # Total Max Exceeded: 553840
 # Duplicate Key Count : 941157
