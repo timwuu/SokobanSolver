@@ -6,6 +6,7 @@ import threading
 # Notation: [ROW][COL]
 # Note: Add Forbidden Cells to improve the efficiency
 #       Check duplicate state in the search tree, keep DEPTH info
+#           ?keep DEPTH or STEPS
 #       Add Progress Monitoring
 #       ?Store Search Nodes for next batch
 #       ?Add Heuristic Move
@@ -23,6 +24,9 @@ import threading
 # -3: PLAYER
 # -9: BLANK
 
+MAP_WALL = -1
+MAP_BOX = -2
+MAP_PLAYER = -3
 MAP_BLANK = -9
 
 MAX_STEP_COUNT_LST_SIZE = 256
@@ -83,6 +87,11 @@ class STATE:
     def get_hexdigest( self):
         global g_para_hexdigest
         g_para_hexdigest += 1
+        b = bytes(self._player)
+        for elem in self._box:
+            b += bytes(elem)
+        return hash(b)
+        
         m = hashlib.sha256()
         m.update( bytes(self._player))
         #TODO: possible different orders for same positions of boxes
@@ -129,7 +138,7 @@ def setup( map, state, mapstr):
             continue
 
         if( c=='W'):
-            map[i][j]= -1
+            map[i][j]= MAP_WALL
             j=j+1
             continue
 
@@ -187,9 +196,9 @@ def CountSteps( map, state):
 
     # Add BOX, PLAYER to map
     for x,y in state._box:
-        map[x][y]= -2
+        map[x][y]= MAP_BOX
 
-    map[state._player[0]][state._player[1]] = -3
+    map[state._player[0]][state._player[1]] = MAP_PLAYER
 
     global g_tm_CountSteps2
 
@@ -375,13 +384,13 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
             g_para_duplicate_state_count += 1
 
-            if( trace[key] < depth+1):
+            if( trace[key] < total_steps+steps+1): #depth+1):
                 g_para_duplicate_state_count2 += 1
                 output_progress( mv_progress_slot)  # END_NODE
                 continue
 
         log.append([box_no, steps, mov_dir, i_mov])
-        trace[key] = depth+1
+        trace[key] = total_steps+steps+1  #depth+1
 
         #print( new_state.get_hexdigest())
 
@@ -462,9 +471,9 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Total Max Exceeded: 276172
 # Duplicate Key Count : 426214
 # Duplicate Key Count2: 79402
-# MAX_STEPS = 32
-# MAX_DEPTH = 9
-# goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
+MAX_STEPS = 32
+MAX_DEPTH = 9
+goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
 # OLD
 # Time Used: 0:01:44.899962
@@ -488,26 +497,47 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Time Diff (Map Copy): 0:00:00.340164
 # Time Diff (Search Moves): 0:00:01.679781
 # Time Diff (get_hexdigest): 0:00:03.941602
+# Time Diff (get_hexdigest): 0:00:02.270690 using hash()
 MAX_STEPS = 33
 MAX_DEPTH = 10
 goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:03:16.598457
-# Time Used (g_tm_CountSteps2): 0:00:30.609449
+# Time Used: 0:02:25.802443
+# Time Used (g_tm_CountSteps2): 0:00:32.830728
 # Total State Key Calced: 11498834
+# Total No Further Moves: 148640
 # Total State Searched: 184658
 # Total Max Exceeded: 4987044
 # Duplicate Key Count : 11314176
 # Duplicate Key Count2: 3603415
-# Time Diff (STATE Copy): 0:00:55.282446
-# MAX_STEPS = 40
-# MAX_DEPTH = 13
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
+# Time Diff (get_hexdigest): 0:00:27.530833
 
-# # Time Used:
-# MAX_STEPS = 45
-# MAX_DEPTH = 16
-# goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
+# [Key with STEPS]
+# Time Used: 0:00:33.503894
+# Time Used (g_tm_CountSteps2): 0:00:06.832672
+# Total State Key Calced: 2934375
+# Total No Further Moves: 16766
+# Total State Searched: 182458
+# Total Max Exceeded: 597148
+# Duplicate Key Count : 2751917
+# Duplicate Key Count2: 1697195
+# Time Diff (get_hexdigest): 0:00:06.814047
+MAX_STEPS = 40
+MAX_DEPTH = 13
+goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
+
+# Time Used: 0:01:46.088441
+# Time Used (g_tm_CountSteps2): 0:00:22.916681
+# Total State Key Calced: 9359991
+# Total No Further Moves: 57642
+# Total State Searched: 333013
+# Total Max Exceeded: 1250954
+# Duplicate Key Count : 9026978
+# Duplicate Key Count2: 6053510
+# Time Diff (get_hexdigest): 0:00:20.897036
+MAX_STEPS = 45
+MAX_DEPTH = 16
+goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
 
 # # Time Used:
 # MAX_STEPS = 46
@@ -529,8 +559,6 @@ goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 # MAX_DEPTH = 24
 # goal = [[4,4],[3,4],[4,5],[3,3],[3,5]]
 
-
-# map : WALLS ONLY
 map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
 
 setup( map, s, mapstr)
