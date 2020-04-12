@@ -12,10 +12,15 @@ import threading
 #       ?Add Heuristic Move
 #       ?Multithreading
 #       ?Save Node while max steps/depths exceeded
-#
+#       ?Search Bi-directional
+#       ?Adjust the order of the list of moves (according to previous move)
+#       ?Merge trace and trace_moves
+
+# 
 #       2020.04.11 Changed Numpy array to list
 #       2020.04.11 Improved State Copy
 #       2020.04.11 Removed _wall in STATE
+#       2020.04.12 Stored Previous Calculated Moves for each STATE
 
 # DEFINE:
 # map[][]:
@@ -27,14 +32,21 @@ MAP_BLANK = -9
 
 MAX_STEP_COUNT_LST_SIZE = 256
 
+# FirstStep+ #5 No.09
+MAP_STR = "#---WWWW-"+"#WWWW PW-"+"#W   B W-"+"#W B   WW"+"#WWB B  W"+"#-W  B  W"+"#-W  WWWW"+"#-WWWW---"
+
+# FirstStep+ #5 No.10
+# MAP_STR = "#---WWWW-"+"#WWWW PW-"+"#W   B W-"+"#W B   WW"+"#WWB B  W"+"#-W  B  W"+"#-W  WWWW"+"#-WWWW---"
+
 MAX_STEPS = 28  
 MAX_DEPTH = 6
 MAP_ROW = 8
 MAP_COL = 8
-#FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
 FORBIDDEN = ((1,4),(1,5),(2,1),(3,1),(4,6),(5,6),(7,2),(7,3))
 
-FIND_ONLY_ONE = False
+FIND_ONLY_ONE = True
+
+PROGRESS_UPDATE_PERIOD = 5.0 #seconds
 
 g_cnt_mov=0
 
@@ -98,7 +110,6 @@ class STATE:
             m.update( bytes(elem))
         return m.hexdigest()
     
-    # print( "Move Box:", box_no, "Steps:", steps, "Dir:", mov_dir)
     def moveBox( self, box_no, mov_dir):
 
         self._player[0] = self._box[box_no][0]
@@ -300,9 +311,10 @@ def SearchEligibleMoves( map, state, moves, log):
 def Solve( map, state, goal):
 
     trace = {}
+    trace_moves = {}
     log = []
 
-    if( not Solve2( map, state, goal, 0, 0, trace, log, 100.0)):
+    if( not Solve2( map, state, state.get_hexdigest(), goal, 0, 0, trace, trace_moves, log, 100.0)):
         print( "No More Solutions!")
 
     global g_para_total_state_searched
@@ -310,7 +322,7 @@ def Solve( map, state, goal):
     
 
 
-def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
+def Solve2( map, state, state_key, goal, depth, total_steps, trace, trace_moves, log, progress_slot):
 
     if( total_steps> MAX_STEPS or depth> MAX_DEPTH):
         global g_para_max_exceeded
@@ -318,21 +330,26 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
         output_progress( progress_slot)  # END_NODE
         return False
 
-    # map2 : WALLS plus STEP COUNT
-    #g_tm_start()
-    map2=[]
-    for elem in map:
-        map2.append([*elem])  #2020.04.11 timijk: avoid map2 = copy.deepcopy(map)
-    #g_tm_add()
+    if( state_key in trace_moves):
+        moves = trace_moves[state_key]
+    else:
+        # map2 : WALLS plus STEP COUNT
+        #g_tm_start()
+        map2=[]
+        for elem in map:
+            map2.append([*elem])  #2020.04.11 timijk: avoid map2 = copy.deepcopy(map)
+        #g_tm_add()
 
-    #Count steps to reachable blank squares
-    CountSteps( map2, state)
+        #Count steps to reachable blank squares
+        CountSteps( map2, state)
 
-    #Remove illegible moves for the BOX
-    moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
+        #Remove illegible moves for the BOX
+        moves=[]  # list of [ targetPlayerPosition, moveDirection, steps, box no]
 
-    #g_tm_start()
-    SearchEligibleMoves( map2, state, moves, log)
+        #g_tm_start()
+        SearchEligibleMoves( map2, state, moves, log)
+
+        trace_moves[state_key] = moves
 
     if( len(moves)):
         mv_progress_slot = progress_slot/len(moves)
@@ -393,7 +410,7 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         else:
             #start a new node for search
-            if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log, mv_progress_slot)):
+            if( Solve2( map, new_state, key, goal, depth+1, total_steps+steps+1, trace, trace_moves, log, mv_progress_slot)):
                 if FIND_ONLY_ONE:
                     return True
 
@@ -411,13 +428,11 @@ def output_progress( progress):
     
     tmp = datetime.datetime.now()
 
-    if( tmp - g_progress_prv_time > datetime.timedelta(seconds=2.0)):
+    if( tmp - g_progress_prv_time > datetime.timedelta(seconds=PROGRESS_UPDATE_PERIOD)):
         print( "progress: {:.4f}%".format(g_progress))
         g_progress_prv_time = tmp
 
 s = STATE()
-
-mapstr = "#---WWWW-"+"#WWWW PW-"+"#W   B W-"+"#W B   WW"+"#WWB B  W"+"#-W  B  W"+"#-W  WWWW"+"#-WWWW---"
 
 goal = [[3,3],[3,4],[3,5],[4,4],[4,5]]
 
@@ -494,33 +509,23 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Time Diff (Search Moves): 0:00:01.679781
 # Time Diff (get_hexdigest): 0:00:03.941602
 # Time Diff (get_hexdigest): 0:00:02.270690 using hash()
-# MAX_STEPS = 33
-# MAX_DEPTH = 10
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
+MAX_STEPS = 33
+MAX_DEPTH = 10
+goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
-# Time Used: 0:02:25.802443
-# Time Used (g_tm_CountSteps2): 0:00:32.830728
-# Total State Key Calced: 11498834
-# Total No Further Moves: 148640
-# Total State Searched: 184658
-# Total Max Exceeded: 4987044
-# Duplicate Key Count : 11314176
-# Duplicate Key Count2: 3603415
-# Time Diff (get_hexdigest): 0:00:27.530833
-
-# [Key with STEPS]
-# Time Used: 0:00:33.503894
-# Time Used (g_tm_CountSteps2): 0:00:06.832672
-# Total State Key Calced: 2934375
-# Total No Further Moves: 16766
-# Total State Searched: 182458
-# Total Max Exceeded: 597148
-# Duplicate Key Count : 2751917
-# Duplicate Key Count2: 1697195
-# Time Diff (get_hexdigest): 0:00:06.814047
-# MAX_STEPS = 40
-# MAX_DEPTH = 13
-# goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
+# [Key with STEPS] (trace_moves)
+# Time Used: 0:00:22.840702
+# Time Used (g_tm_CountSteps2): 0:00:01.363490
+# Total State Key Calced: 2928439
+# Total No Further Moves: 16802
+# Total State Searched: 182459
+# Total Max Exceeded: 597015
+# Duplicate Key Count : 2745979
+# Duplicate Key Count2: 1692313
+# Time Diff (get_hexdigest): 0:00:06.745612
+MAX_STEPS = 40
+MAX_DEPTH = 13
+goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
 # Time Used: 0:01:46.088441
 # Time Used (g_tm_CountSteps2): 0:00:22.916681
@@ -566,23 +571,29 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # MAX_DEPTH = 20
 # goal = [[4,4],[3,4],[4,5],[3,3],[2,2]]
 
-# STEPS: 73
-# Time Used: 0:22:41.974807
-# Time Used (g_tm_CountSteps2): 0:04:48.027445
-# Total State Key Calced: 117332012
-# Total No Further Moves: 749018
-# Total State Searched: 1135303
-# Total Max Exceeded: 6406514
-# Duplicate Key Count : 116196709
-# Duplicate Key Count2: 85475995
-# Time Diff (get_hexdigest): 0:04:31.542428
+# STEPS: 73 [trace_moves]
+# Time Used: 0:13:24.848147
+# Time Used (g_tm_CountSteps2): 0:00:11.611889
+# Total State Key Calced: 117129648
+# Total No Further Moves: 749693
+# Total State Searched: 1135304
+# Total Max Exceeded: 6397163
+# Duplicate Key Count : 115994343
+# Duplicate Key Count2: 85313455
+# Time Diff (get_hexdigest): 0:04:19.576780
 # MAX_STEPS = 71
 # MAX_DEPTH = 24
 # goal = [[4,4],[3,4],[4,5],[3,3],[3,5]]
 
+
+# MAX_STEPS = 34
+# MAX_DEPTH = 10
+# goal = [[3,2],[3,3],[3,4],[3,5],[4,3]]
+
+
 map = [[MAP_BLANK for i in range(MAP_COL)] for j in range(MAP_ROW)]
 
-setup( map, s, mapstr)
+setup( map, s, MAP_STR)
 
 g_progress_prv_time = datetime.datetime.now()
 
