@@ -19,10 +19,6 @@ import threading
 
 # DEFINE:
 # map[][]:
-# -1: WALL
-# -2: BOX
-# -3: PLAYER
-# -9: BLANK
 
 MAP_WALL = -1
 MAP_BOX = -2
@@ -35,8 +31,10 @@ MAX_STEPS = 28
 MAX_DEPTH = 6
 MAP_ROW = 8
 MAP_COL = 8
-FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
+#FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
 FORBIDDEN = ((1,4),(1,5),(2,1),(3,1),(4,6),(5,6),(7,2),(7,3))
+
+FIND_ONLY_ONE = False
 
 g_cnt_mov=0
 
@@ -305,7 +303,7 @@ def Solve( map, state, goal):
     log = []
 
     if( not Solve2( map, state, goal, 0, 0, trace, log, 100.0)):
-        print( "Cannot Solve!")
+        print( "No More Solutions!")
 
     global g_para_total_state_searched
     g_para_total_state_searched = len(trace)
@@ -359,24 +357,11 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         new_state.moveBox( box_no, mov_dir)
 
-
-        #check if meet goal
-        if( new_state.matchGoal(goal)):
-            print( "Reach Goals!")
-            print( "Depth:", depth+1)
-            print( "Total Steps:", total_steps+steps+1)
-    
-            log.append([box_no, steps, mov_dir, i_mov])
-
-            for l in log:
-                print( " Move Box: {:d} Steps: {:d} Dir: {} i: {}".format(l[0],l[1],l[2],l[3]))
-            return True
-
-        #check if new_state is duplicate
-        
         g_tm_start()
         key = new_state.get_hexdigest()
         g_tm_add()
+
+        #check if new_state is duplicate
 
         if( key in trace):
             #print( "duplicate state!")
@@ -391,19 +376,29 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
                 continue
 
         log.append([box_no, steps, mov_dir, i_mov])
+
         trace[key] = total_steps+steps+1  #depth+1
 
-        #print( new_state.get_hexdigest())
+        #check if meet goal
+        if( new_state.matchGoal(goal)):
+            print( "Reach Goals!")
+            print( "Depth:", depth+1)
+            print( "Total Steps:", total_steps+steps+1)
+    
+            for l in log:
+                print( " Move Box: {0:2d}   Steps: {1:2d}   Dir: ({2[0]:2d},{2[1]:2d})  i: {3}".format(l[0],l[1],l[2],l[3]))
 
-        #start a new node for search
-        if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log, mv_progress_slot)):
-            return True
-            #log.pop()
-            #continue    #Find next alternative solution
+            if FIND_ONLY_ONE:
+                return True
+
         else:
-            log.pop()            
-            #output_progress( mv_progress_slot)
-            #trace.pop(key)
+            #start a new node for search
+            if( Solve2( map, new_state, goal, depth+1, total_steps+steps+1, trace, log, mv_progress_slot)):
+                if FIND_ONLY_ONE:
+                    return True
+
+        log.pop()   #Find next solution
+
         continue
 
     return False
@@ -458,8 +453,8 @@ goal = [[3,4],[3,3],[2,2],[4,3],[5,5]]
 # Total Max Exceeded: 111053
 # Duplicate Key Count : 156954
 # Duplicate Key Count2: 26714
-MAX_STEPS = 31
-MAX_DEPTH = 8
+MAX_STEPS = 40 #31
+MAX_DEPTH = 10 #8
 goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 
 # Time Used: 0:00:46.802952
