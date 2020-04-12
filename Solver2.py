@@ -36,6 +36,7 @@ MAX_DEPTH = 6
 MAP_ROW = 8
 MAP_COL = 8
 FORBIDDEN = [[1,4],[1,5],[2,1],[3,1],[4,6],[5,6],[7,2],[7,3]]
+FORBIDDEN = ((1,4),(1,5),(2,1),(3,1),(4,6),(5,6),(7,2),(7,3))
 
 g_cnt_mov=0
 
@@ -227,32 +228,32 @@ def SearchEligibleMoves( map, state, moves, log):
         _R = map[x][y+1]
 
         if( _U>=0 and _D>=0 ):    #UP/DOWN
-            if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],_D, i])
-            if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],_U, i])
+            if( isNotForbidden((x-1,y))):
+                moves.append(((-1,0),_D, i))
+            if( isNotForbidden((x+1,y))):
+                moves.append(((1,0),_U, i))
         else:
             if( _U== MAP_BLANK and _D>=0 ):    #UP
-                if( isNotForbidden([x-1,y])):
-                    moves.append([[x+1,y],[-1,0],_D, i])
+                if( isNotForbidden((x-1,y))):
+                    moves.append(((-1,0),_D, i))
 
             if( _U>=0 and _D== MAP_BLANK ):    #DOWN
-                if( isNotForbidden([x+1,y])):
-                    moves.append([[x-1,y],[1,0],_U, i])
+                if( isNotForbidden((x+1,y))):
+                    moves.append(((1,0),_U, i))
 
         if( _L>=0 and _R>=0):    #LEFT/RIGHT
-            if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],_R, i])
-            if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],_L, i])
+            if( isNotForbidden((x,y-1))):
+                moves.append(((0,-1),_R, i))
+            if( isNotForbidden((x,y+1))):
+                moves.append(((0,1),_L, i))
         else:
             if( _L== MAP_BLANK and _R>=0):    #LEFT
-                if( isNotForbidden([x,y-1])):
-                    moves.append([[x,y+1],[0,-1],_R, i])
+                if( isNotForbidden((x,y-1))):
+                    moves.append(((0,-1),_R, i))
 
             if( _L>=0 and _R== MAP_BLANK):    #RIGHT
-                if( isNotForbidden([x,y+1])):
-                    moves.append([[x,y-1],[0,1],_L, i])
+                if( isNotForbidden((x,y+1))):
+                    moves.append(((0,1),_L, i))
 
     j=i
 
@@ -269,32 +270,32 @@ def SearchEligibleMoves( map, state, moves, log):
         _R = map[x][y+1]
 
         if( _U>=0 and _D>=0 ):    #UP/DOWN
-            if( isNotForbidden([x-1,y])):
-                moves.append([[x+1,y],[-1,0],_D, i])
-            if( isNotForbidden([x+1,y])):
-                moves.append([[x-1,y],[1,0],_U, i])
+            if( isNotForbidden((x-1,y))):
+                moves.append(((-1,0),_D, i))
+            if( isNotForbidden((x+1,y))):
+                moves.append(((1,0),_U, i))
         else:
             if( _U== MAP_BLANK and _D>=0 ):    #UP
-                if( isNotForbidden([x-1,y])):
-                    moves.append([[x+1,y],[-1,0],_D, i])
+                if( isNotForbidden((x-1,y))):
+                    moves.append(((-1,0),_D, i))
 
             if( _U>=0 and _D== MAP_BLANK ):    #DOWN
-                if( isNotForbidden([x+1,y])):
-                    moves.append([[x-1,y],[1,0],_U, i])
+                if( isNotForbidden((x+1,y))):
+                    moves.append(((1,0),_U, i))
 
         if( _L>=0 and _R>=0):    #LEFT/RIGHT
-            if( isNotForbidden([x,y-1])):
-                moves.append([[x,y+1],[0,-1],_R, i])
-            if( isNotForbidden([x,y+1])):
-                moves.append([[x,y-1],[0,1],_L, i])
+            if( isNotForbidden((x,y-1))):
+                moves.append(((0,-1),_R, i))
+            if( isNotForbidden((x,y+1))):
+                moves.append(((0,1),_L, i))
         else:
             if( _L== MAP_BLANK and _R>=0):    #LEFT
-                if( isNotForbidden([x,y-1])):
-                    moves.append([[x,y+1],[0,-1],_R, i])
+                if( isNotForbidden((x,y-1))):
+                    moves.append(((0,-1),_R, i))
 
             if( _L>=0 and _R== MAP_BLANK):    #RIGHT
-                if( isNotForbidden([x,y+1])):
-                    moves.append([[x,y-1],[0,1],_L, i])
+                if( isNotForbidden((x,y+1))):
+                    moves.append(((0,1),_L, i))
 
     pass
 
@@ -348,9 +349,9 @@ def Solve2( map, state, goal, depth, total_steps, trace, log, progress_slot):
 
         #if( depth<2): print( depth, mov, mv_progress_slot)
         
-        steps = mov[2]
-        box_no = mov[3]
-        mov_dir = mov[1]
+        steps = mov[1]
+        box_no = mov[2]
+        mov_dir = mov[0]
 
         #g_tm_start()
         new_state = STATE( state) #2020.04.11 timijk: avoid copy.deepcopy(state)
@@ -471,9 +472,9 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Total Max Exceeded: 276172
 # Duplicate Key Count : 426214
 # Duplicate Key Count2: 79402
-MAX_STEPS = 32
-MAX_DEPTH = 9
-goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
+# MAX_STEPS = 32
+# MAX_DEPTH = 9
+# goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 
 # OLD
 # Time Used: 0:01:44.899962
@@ -498,9 +499,9 @@ goal = [[3,4],[3,3],[2,5],[4,3],[5,5]]
 # Time Diff (Search Moves): 0:00:01.679781
 # Time Diff (get_hexdigest): 0:00:03.941602
 # Time Diff (get_hexdigest): 0:00:02.270690 using hash()
-MAX_STEPS = 33
-MAX_DEPTH = 10
-goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
+# MAX_STEPS = 33
+# MAX_DEPTH = 10
+# goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
 # Time Used: 0:02:25.802443
 # Time Used (g_tm_CountSteps2): 0:00:32.830728
@@ -522,9 +523,9 @@ goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 # Duplicate Key Count : 2751917
 # Duplicate Key Count2: 1697195
 # Time Diff (get_hexdigest): 0:00:06.814047
-MAX_STEPS = 40
-MAX_DEPTH = 13
-goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
+# MAX_STEPS = 40
+# MAX_DEPTH = 13
+# goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
 # Time Used: 0:01:46.088441
 # Time Used (g_tm_CountSteps2): 0:00:22.916681
@@ -535,26 +536,51 @@ goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 # Duplicate Key Count : 9026978
 # Duplicate Key Count2: 6053510
 # Time Diff (get_hexdigest): 0:00:20.897036
-MAX_STEPS = 45
-MAX_DEPTH = 16
-goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
+# MAX_STEPS = 45
+# MAX_DEPTH = 16
+# goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
 
 # # Time Used:
 # MAX_STEPS = 46
 # MAX_DEPTH = 17
 # goal = [[4,4],[3,4],[2,5],[4,3],[2,2]]
 
-# # Time Used:
+# Time Used: 0:04:31.386291
+# Time Used (g_tm_CountSteps2): 0:00:57.143842
+# Total State Key Calced: 24114280
+# Total No Further Moves: 163471
+# Total State Searched: 548603
+# Total Max Exceeded: 2344236
+# Duplicate Key Count : 23565677
+# Duplicate Key Count2: 16472340
+# Time Diff (get_hexdigest): 0:00:53.870424
 # MAX_STEPS = 52
 # MAX_DEPTH = 19
 # goal = [[4,4],[3,4],[4,5],[4,3],[2,2]]
 
-# # Time Used:
+# Time Used: 0:09:37.125761
+# Time Used (g_tm_CountSteps2): 0:01:59.701923
+# Total State Key Calced: 50147734
+# Total No Further Moves: 300190
+# Total State Searched: 796703
+# Total Max Exceeded: 4040017
+# Duplicate Key Count : 49351031
+# Duplicate Key Count2: 35261005
+# Time Diff (get_hexdigest): 0:01:55.930455
 # MAX_STEPS = 61
 # MAX_DEPTH = 20
 # goal = [[4,4],[3,4],[4,5],[3,3],[2,2]]
 
-# # Time Used:
+# STEPS: 73
+# Time Used: 0:22:41.974807
+# Time Used (g_tm_CountSteps2): 0:04:48.027445
+# Total State Key Calced: 117332012
+# Total No Further Moves: 749018
+# Total State Searched: 1135303
+# Total Max Exceeded: 6406514
+# Duplicate Key Count : 116196709
+# Duplicate Key Count2: 85475995
+# Time Diff (get_hexdigest): 0:04:31.542428
 # MAX_STEPS = 71
 # MAX_DEPTH = 24
 # goal = [[4,4],[3,4],[4,5],[3,3],[3,5]]
