@@ -87,16 +87,14 @@ class STATE:
     
     def __init__( self, s=None):
         self._player=None
+        self._box=[[],[]]
 
         if( s is not None):
-            self._box=[]
-            for elem in s._box:
-                self._box.append( [*elem])
+            for i,elem in enumerate(s._box):
+                self._box[i].extend([*elem])
 
             self._player = [*s._player]  #faster copy
             #self._player = list( s._player)
-        else:
-            self._box=[[],[]]
 
     def get_hexdigest( self):
         global g_para_hexdigest
@@ -540,18 +538,18 @@ else:
     MAX_DEPTH = 15
 goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
-# Time Used: 0:01:46.088441
-# Time Used (g_tm_CountSteps2): 0:00:22.916681
-# Total State Key Calced: 9359991
-# Total No Further Moves: 57642
-# Total State Searched: 333013
-# Total Max Exceeded: 1250954
-# Duplicate Key Count : 9026978
-# Duplicate Key Count2: 6053510
-# Time Diff (get_hexdigest): 0:00:20.897036
-# MAX_STEPS = 45
-# MAX_DEPTH = 16
-# goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
+# Time Used: 0:01:03.260316
+# Time Used (g_tm_CountSteps2): 0:00:02.782105
+# Total State Key Calced: 9344515
+# Total No Further Moves: 57406
+# Total State Searched: 333014
+# Total Max Exceeded: 1250750
+# Duplicate Key Count : 9011500
+# Duplicate Key Count2: 6041383
+# Time Diff (get_hexdigest): 0:00:15.248187
+MAX_STEPS = 45
+MAX_DEPTH = 16
+goal = [[4,4],[3,3],[2,5],[4,3],[2,2]]
 
 # # Time Used:
 # MAX_STEPS = 46
