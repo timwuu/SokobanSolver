@@ -21,6 +21,7 @@ import threading
 #       2020.04.11 Improved State Copy
 #       2020.04.11 Removed _wall in STATE
 #       2020.04.12 Stored Previous Calculated Moves for each STATE
+#       2020.04.13 Change STATE._box dimension to STATE._box[2][box_no]
 
 # DEFINE:
 # map[][]:
@@ -85,15 +86,17 @@ def g_tm_print( func_name):
 class STATE:
     
     def __init__( self, s=None):
-        self._box=[]
         self._player=None
 
         if( s is not None):
+            self._box=[]
             for elem in s._box:
                 self._box.append( [*elem])
 
             self._player = [*s._player]  #faster copy
             #self._player = list( s._player)
+        else:
+            self._box=[[],[]]
 
     def get_hexdigest( self):
         global g_para_hexdigest
@@ -112,18 +115,18 @@ class STATE:
     
     def moveBox( self, box_no, mov_dir):
 
-        self._player[0] = self._box[box_no][0]
-        self._player[1] = self._box[box_no][1]
+        self._player[0] = self._box[0][box_no]
+        self._player[1] = self._box[1][box_no]
 
-        self._box[box_no][0] += mov_dir[0]
-        self._box[box_no][1] += mov_dir[1]
+        self._box[0][box_no] += mov_dir[0]
+        self._box[1][box_no] += mov_dir[1]
     
     def matchGoal( self, goal):
 
         #g_tm_start()
 
-        for elem in self._box:
-            if( elem not in goal):
+        for i, x in enumerate(self._box[0]):
+            if( [x,self._box[1][i]] not in goal):
                 #g_tm_add()
                 return False
 
@@ -153,15 +156,16 @@ def setup( map, state, mapstr):
             continue
 
         if( c=='B'):
-            state._box.append([i,j])
+            state._box[0].append(i)
+            state._box[1].append(j)
             j=j+1
             continue
 
         j=j+1
 
-        #print( self._player)
-        #print( self._wall)
-        #print( self._box)
+    #print( state._player)
+    #print( state._wall)
+    #print( state._box)
 
 def CountSteps2( map, state):
 
@@ -205,8 +209,8 @@ def CountSteps2( map, state):
 def CountSteps( map, state):
 
     # Add BOX, PLAYER to map
-    for x,y in state._box:
-        map[x][y]= MAP_BOX
+    for i,x in enumerate( state._box[0]):
+        map[x][state._box[1][i]]= MAP_BOX
 
     map[state._player[0]][state._player[1]] = MAP_PLAYER
 
@@ -229,7 +233,8 @@ def SearchEligibleMoves( map, state, moves, log):
         i = log[-1][0]  # last moved box_no 
         #lst_mov_dir = log[-1][2]
 
-        x, y = state._box[i]
+        x = state._box[0][i]
+        y = state._box[1][i]
 
         _U = map[x-1][y]
         _D = map[x+1][y]
@@ -266,12 +271,12 @@ def SearchEligibleMoves( map, state, moves, log):
 
     j=i
 
-    for i, elem in enumerate( state._box):
+    for i, x in enumerate( state._box[0]):
 
         if(j==i):
             continue
 
-        x, y = elem
+        y = state._box[1][i]
 
         _U = map[x-1][y]
         _D = map[x+1][y]
@@ -509,8 +514,12 @@ goal = [[3,4],[3,3],[2,4],[4,3],[5,5]]
 # Time Diff (Search Moves): 0:00:01.679781
 # Time Diff (get_hexdigest): 0:00:03.941602
 # Time Diff (get_hexdigest): 0:00:02.270690 using hash()
-MAX_STEPS = 33
-MAX_DEPTH = 10
+if FIND_ONLY_ONE:
+    MAX_STEPS = 33
+    MAX_DEPTH = 10
+else:
+    MAX_STEPS = 40
+    MAX_DEPTH = 5
 goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 
 # [Key with STEPS] (trace_moves)
@@ -523,8 +532,12 @@ goal = [[4,4],[3,3],[2,5],[4,3],[5,5]]
 # Duplicate Key Count : 2745979
 # Duplicate Key Count2: 1692313
 # Time Diff (get_hexdigest): 0:00:06.745612
-MAX_STEPS = 40
-MAX_DEPTH = 13
+if FIND_ONLY_ONE:
+    MAX_STEPS = 40
+    MAX_DEPTH = 13
+else:
+    MAX_STEPS = 50
+    MAX_DEPTH = 15
 goal = [[4,4],[3,3],[2,5],[4,3],[5,2]]
 
 # Time Used: 0:01:46.088441
