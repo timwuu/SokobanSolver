@@ -207,21 +207,27 @@ def CountSteps2( map, state):
 
 def CountSteps( map, state):
 
+    #g_tm_start()
+    map2=[]
+    for elem in map:
+        map2.append([*elem])  #2020.04.11 timijk: avoid map2 = copy.deepcopy(map)
+    #g_tm_add()
+
     # Add BOX, PLAYER to map
     for i,x in enumerate( state._box[0]):
-        map[x][state._box[1][i]]= MAP_BOX
+        map2[x][state._box[1][i]]= MAP_BOX
 
-    map[state._player[0]][state._player[1]] = MAP_PLAYER
+    map2[state._player[0]][state._player[1]] = MAP_PLAYER
 
     global g_tm_CountSteps2
 
     tm_tmp = datetime.datetime.now()
 
-    CountSteps2( map, state)
+    CountSteps2( map2, state)
 
     g_tm_CountSteps2 += datetime.datetime.now() - tm_tmp
 
-    pass
+    return map2
 
 def SearchEligibleMoves( map, state, moves, log):
 
@@ -314,10 +320,14 @@ def SearchEligibleMoves( map, state, moves, log):
 
 def SearchAdjacentStates( map, state, adj_states, log):
 
+    # map2 : WALLS plus STEP COUNT
+    #Count steps to reachable blank squares
+    map2 = CountSteps( map, state)
+
     # list of [ moveDirection, steps, box no]
     moves=[]
 
-    SearchEligibleMoves( map, state, moves, log)
+    SearchEligibleMoves( map2, state, moves, log)
 
     for mov in moves:
 
@@ -357,19 +367,9 @@ def SolveDFS( map, state, state_key, goal, depth, total_steps, trace, trace_adj_
     if( state_key in trace_adj_states):
         adj_states = trace_adj_states[state_key]
     else:
-        # map2 : WALLS plus STEP COUNT
-        #g_tm_start()
-        map2=[]
-        for elem in map:
-            map2.append([*elem])  #2020.04.11 timijk: avoid map2 = copy.deepcopy(map)
-        #g_tm_add()
-
-        #Count steps to reachable blank squares
-        CountSteps( map2, state)
-
         adj_states=[]
 
-        SearchAdjacentStates( map2, state, adj_states, log)
+        SearchAdjacentStates( map, state, adj_states, log)
 
         trace_adj_states[state_key] = adj_states
 
